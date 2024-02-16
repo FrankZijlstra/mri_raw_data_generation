@@ -1,0 +1,34 @@
+ps_train: &ps_train [['2','90','5','1','7','91','8','3','89','10','92','12','13','93','6','14','95','15','94','9','17','96','18','19','97','11','20','110','98','21','16','22','99','23','24','100','28','112','25','101','26','29','27','102','30','31','103','34','121','32','104','33','40','35','105','36','43','106','37','123','38','107','39','46','41','108','42','47','124','44','109','45','111','50','48','51','113','52','126','49','53','114','54','59','115','55','60','117','127','61','56','62','118','63','64','119','57','65','128','120','66','58','67','122','68','72','125','69','129','73','131','75','70','76','132','77','78','71','133','130','79','134','80','74','81','135','82','83','137','84','136','85','86','169','87','88','171','140','138','146','141','172','142','143','173','152','144','174','139','145','154','147','175','148','149','176','155','150','170','177']]
+ps_validation: &ps_validation [['168','160','186','184']]
+ps_test: &ps_test [['151','156','153','178','161','162','180','157','179','163','181','164','158','165','182','166','167','159','185','183']]
+
+dataset: &dataset {}
+dataset_val: &dataset_val {}
+dataset_test: &dataset_test {}
+
+preprocessing: &preprocessing []
+preprocessing_val: &preprocessing_val []
+
+datasets:
+  train:
+    type: StaticDataset
+    dataset: *dataset
+    indices: *ps_train
+    preprocessors: *preprocessing
+    training_only: True
+
+  validation:
+    type: StaticDataset
+    dataset: *dataset_val
+    indices: *ps_validation
+    preprocessors: *preprocessing_val
+    preprocessors_parameters: train
+    training_only: True
+    
+  test:
+    type: DynamicDataset
+    dataset: *dataset_test
+    indices: *ps_test
+    preprocessors: *preprocessing_val
+    preprocessors_parameters: train
+    inference_only: True

@@ -1,0 +1,74 @@
+globals:
+  num_channels_in: eval next(generators['train'])['in'].shape[1]
+  num_channels_out: eval next(generators['train'])['out'].shape[1]
+  mask_shape: eval datasets['train'].indexed_item(0)[0]['out'].shape[2:]
+  num_val: eval math.ceil(sum(datasets['validation'].indexed_item(x)[0]['in'].shape[1] for x in range(datasets['validation'].number_of_items())))
+
+model_runners:
+  default:
+    type: Slice
+    input_dataset: in
+    batch_size: 1
+    processors:
+    - {type: GPU, dataset: [in]}
+
+
+trainer:
+  type: Paired
+  epochs: 1000
+  batches_per_epoch: 200
+  validation_batches_per_epoch: '%num_val%'
+  train_generator_name: train
+  validation_generator_name: validation
+  callbacks:
+  - ProgressPrinter
+  - type: DictionaryLRScheduler
+    verbose: True
+    schedule:
+      0: 0.0003
+      800: 0.00003
+  - TrainingLogWriter
+  - type: PairedImageWriter
+    filename_prefix: val
+    dataset: validation
+    grid: True
+    complex: False
+    output_dataset: out
+  - type: ModelSaver
+    verbose: True
+    interval: 10
+    keep_only_last: True
+ 
+model:
+  type: Base
+  input_dataset: in
+  output_dataset: out
+  loss: SSIMLoss
+  network:
+    type: VarNet
+    center_mask: [26,320]
+    network:
+      type: UNet2D
+      hidden_channels: 18
+      input_channels: 2
+      output_channels: 2
+      levels: 4
+      padding_mode: reflect
+      normalization: InstanceNorm2D
+      activation:
+        type: LeakyReLU
+        negative_slope: 0.2
+    network_sme:
+      type: UNet2D
+      hidden_channels: 8
+      input_channels: 2
+      output_channels: 2
+      levels: 4
+      padding_mode: reflect
+      normalization: InstanceNorm2D
+      activation:
+        type: LeakyReLU
+        negative_slope: 0.2
+  optimizer:
+    type: Adam
+

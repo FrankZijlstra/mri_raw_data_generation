@@ -1,0 +1,90 @@
+globals:
+  num_channels_in: eval next(generators['train'])['in'].shape[1]
+  num_channels_out: eval next(generators['train'])['out'].shape[1]
+
+model_runners:
+  default:
+    type: SliceSeeded
+    input_dataset: in
+    batch_size: 1
+    processors:
+    - {type: GPU, dataset: [in]}
+    - {type: ResampleAvg, dataset: in, output_dataset: lr, target_shape: [80,80]}
+    - {type: GenerateNormalNoise, output_dataset: noise, batch_size: in, shape: [4], torch: True, device: 'cuda:0'}
+    - {type: Model, filename: ./results/phase_aae_20s/fold1/final, dataset: {in: lr, noise: noise}, output_dataset: {phase: out}}
+    - {type: Resample, dataset: phase, target_shape: [320,320]}
+    - {type: Concatenate, dataset: [in, phase]}
+
+processors_train: &processors_train
+- {type: SliceSampler, batch_size: 1, input_dataset: [in, out]}
+- {type: GPU, dataset: [in, out]}
+- {type: ResampleAvg, dataset: in, output_dataset: lr, target_shape: [80,80]}
+- {type: ResampleAvg, dataset: out, output_dataset: phase, target_shape: [80,80]}
+- {type: ComplexToChannels, dataset: phase}
+- {type: Model, filename: ./results/phase_aae_20s/fold1/final, dataset: {in: lr, out: phase}, output_dataset: {noise: Z_real}, datasets: [Z_real]}
+- {type: Model, filename: ./results/phase_aae_20s/fold1/final, dataset: {in: lr, noise: noise}, output_dataset: {phase: out}}
+- {type: Resample, dataset: phase, target_shape: [320,320]}
+- {type: Concatenate, dataset: [in, phase]}
+- {type: ComplexToChannels, dataset: out}
+
+
+generators:
+  train:
+    type: Generator
+    threads: 0
+    processors: *processors_train
+
+  validation:
+    type: Generator
+    threads: 0
+    processors: *processors_train
+
+    
+trainer:
+  type: Paired
+  epochs: 100
+  batches_per_epoch: 2000
+  validation_batches_per_epoch: 20
+  train_generator_name: train
+  validation_generator_name: validation
+  callbacks:
+  - ProgressPrinter
+  - type: LinearLRScheduler
+    learning_rate: 0.0001
+    verbose: True
+    values:
+      0: 1
+      0.5: 1
+      1: 1.0e-3
+  - TrainingLogWriter
+  - type: SeededPairedImageWriter
+    filename_prefix: val
+    dataset: validation
+    grid: True
+    shape: [3,3]
+    complex: True
+    output_dataset: out
+    output_processors:
+    - {type: ComplexToChannels, dataset: out}
+  - type: ModelSaver
+    verbose: True
+    interval: 10
+    keep_only_last: True
+ 
+model:
+  type: Base
+  input_dataset: in
+  output_dataset: out
+  network:
+    type: UNet2D
+    hidden_channels: 32
+    input_channels: '%num_channels_in%'
+    output_channels: '%num_channels_out%'
+    levels: 4
+    normalization: PixelNormalization2D
+    activation: ELU
+    padding_mode: reflect
+ 
+  optimizer:
+    type: Adam
+    weight_decay: 1.0e-5

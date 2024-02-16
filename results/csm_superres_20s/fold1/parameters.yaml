@@ -1,0 +1,159 @@
+datasets:
+  test:
+    dataset:
+      in:
+        channels:
+        - channel: /rec
+          type: CpxMagnitude
+        data_dir: ./data/fastmri_t1post
+        dtype: float32
+        type: HDF5
+      out:
+        channels:
+        - /csm
+        data_dir: ./data/fastmri_t1post
+        dtype: complex64
+        type: HDF5
+    indices:
+    - - '151'
+      - '156'
+      - '153'
+      - '178'
+      - '161'
+      - '162'
+      - '180'
+      - '157'
+      - '179'
+      - '163'
+      - '181'
+      - '164'
+      - '158'
+      - '165'
+      - '182'
+      - '166'
+      - '167'
+      - '159'
+      - '185'
+      - '183'
+    inference_only: true
+    preprocessors: &id001 []
+    preprocessors_parameters: train
+    type: DynamicDataset
+  train:
+    dataset:
+      in:
+        channels:
+        - channel: /rec
+          type: CpxMagnitude
+        data_dir: ./data/fastmri_t1post
+        dtype: float32
+        type: HDF5
+      out:
+        channels:
+        - /csm
+        data_dir: ./data/fastmri_t1post
+        dtype: complex64
+        type: HDF5
+    indices:
+    - - '2'
+      - '90'
+      - '5'
+      - '1'
+      - '7'
+      - '91'
+      - '8'
+      - '3'
+      - '89'
+      - '10'
+      - '92'
+      - '12'
+      - '13'
+      - '93'
+      - '6'
+      - '14'
+      - '95'
+      - '15'
+      - '94'
+      - '9'
+    preprocessors: []
+    training_only: true
+    type: StaticDataset
+  validation:
+    dataset:
+      in:
+        channels:
+        - channel: /rec
+          type: CpxMagnitude
+        data_dir: ./data/fastmri_t1post
+        dtype: float32
+        type: HDF5
+      out:
+        channels:
+        - /csm
+        data_dir: ./data/fastmri_t1post
+        dtype: complex64
+        type: HDF5
+    indices:
+    - - '168'
+      - '160'
+      - '186'
+      - '184'
+    preprocessors: *id001
+    preprocessors_parameters: train
+    training_only: true
+    type: StaticDataset
+model:
+  input_dataset: in
+  network:
+    activation: ELU
+    hidden_channels: 32
+    input_channels: 33
+    levels: 4
+    normalization: PixelNormalization2D
+    output_channels: 32
+    padding_mode: reflect
+    type: UNet2D
+  optimizer:
+    type: Adam
+    weight_decay: 1.0e-05
+  output_dataset: out
+  type: Base
+model_runners:
+  default:
+    batch_size: 1
+    input_dataset: in
+    processors:
+    - dataset:
+      - in
+      type: GPU
+    - dataset: in
+      output_dataset: lr
+      target_shape:
+      - 80
+      - 80
+      type: ResampleAvg
+    - batch_size: in
+      device: cuda:0
+      output_dataset: noise
+      shape:
+      - 4
+      torch: true
+      type: GenerateNormalNoise
+    - dataset:
+        in: lr
+        noise: noise
+      filename: ./results/csm_aae_20s/fold1/final
+      output_dataset:
+        csm: out
+      type: Model
+    - dataset: csm
+      target_shape:
+      - 320
+      - 320
+      type: Resample
+    - dataset:
+      - in
+      - csm
+      type: Concatenate
+    type: SliceSeeded
+stored_parameters: {}

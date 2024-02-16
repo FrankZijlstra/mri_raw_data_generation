@@ -1,0 +1,18 @@
+device: !!python/object/apply:torch.device
+- cuda
+- 0
+globals: {}
+output_dir: !!python/object/apply:pathlib.PosixPath
+- /
+- data
+- users
+- frank
+- code
+- raw_data_generation
+- results
+- phase_superres_20s
+parameter_files:
+- ./experiments/fastmri_data_phase.txt
+- ./experiments/20.txt
+- ./experiments/fastmri_superres_phase.txt
+seed: null

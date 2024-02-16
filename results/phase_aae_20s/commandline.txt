@@ -1,0 +1,1 @@
+run.py -p ./experiments/fastmri_data_phase_lr.txt ./experiments/20.txt ./experiments/AAE.txt -o ./results/phase_aae_20s -gpu 0

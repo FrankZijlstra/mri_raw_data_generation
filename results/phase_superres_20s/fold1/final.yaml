@@ -1,0 +1,15 @@
+input_dataset: in
+network:
+  activation: ELU
+  hidden_channels: 32
+  input_channels: 3
+  levels: 4
+  normalization: PixelNormalization2D
+  output_channels: 2
+  padding_mode: reflect
+  type: UNet2D
+optimizer:
+  type: Adam
+  weight_decay: 1.0e-05
+output_dataset: out
+type: Base

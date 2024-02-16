@@ -1,0 +1,8 @@
+activation: ELU
+hidden_channels: 32
+input_channels: 5
+levels: 4
+normalization: PixelNormalization2D
+output_channels: 32
+padding_mode: reflect
+type: UNet2D

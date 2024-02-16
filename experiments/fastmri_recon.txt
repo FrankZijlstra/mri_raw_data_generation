@@ -1,0 +1,21 @@
+processors_train: &processors_train
+- {type: SliceSampler, batch_size: 1, input_dataset: [in]}
+- {type: GenerateEquispacedMask, output_dataset: mask, shape: in, batch_size: in}
+- {type: GPU, dataset: [in]}
+- {type: RSSRecon, dataset: in, output_dataset: out}
+- {type: FFT2D, dataset: in}
+- {type: Multiply, dataset: [in, mask]}
+
+generators:
+  train:
+    type: Generator
+    threads: 4
+    processors: *processors_train
+
+  validation:
+    type: Generator
+    threads: 0
+    processors:
+    - {type: DatasetSliceSampler, batch_size: 1, dataset: validation, input_dataset: [in, out]}
+    - {type: GPU, dataset: [in, out]}
+

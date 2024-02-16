@@ -1,0 +1,51 @@
+include fastmri_data.txt
+
+ps_train_raw: &ps_train_raw [['2','90','5','1','7','91','8','3','89','10','92','12','13','93','6','14','95','15','94','9']]
+
+data_dir: &data_dir ./data/fastmri_t1post
+
+datasets:
+  train_raw:
+    type: StaticDataset
+    dataset:
+      in:
+        type: HDF5
+        data_dir: *data_dir
+        channels: [/cc_im]
+        dtype: complex64
+    indices: *ps_train_raw
+    preprocessors:
+    - {type: CalculateNoiseCovariance, dataset: in, output_dataset: cov}
+    training_only: True
+
+dataset: &dataset
+  out:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [{type: CpxMagnitude, channel: /rec}]
+    dtype: float32
+
+dataset_val: &dataset_val
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/cc_im]
+    dtype: complex64
+
+dataset_test: &dataset_test
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/cc_im]
+    dtype: complex64
+
+
+preprocessing: []
+
+preprocessing_val:
+- {type: GenerateEquispacedMask, output_dataset: mask, shape: in}
+- {type: CPU, dataset: mask}
+- {type: RSSRecon, dataset: in, output_dataset: out}
+- {type: FFT2D, dataset: in}
+- {type: Multiply, dataset: [in, mask]}
+

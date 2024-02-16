@@ -1,0 +1,13 @@
+include fastmri_data_phase.txt
+
+preprocessing:
+- {type: GPU, dataset: [in, out]}
+- {type: ResampleAvg, dataset: [in, out], target_shape: [80,80]}
+- {type: CPU, dataset: [in, out]}
+- {type: ComplexToChannels, dataset: out}
+
+preprocessing_val:
+- {type: GPU, dataset: [in, out]}
+- {type: ResampleAvg, dataset: [in, out], target_shape: [80,80]}
+- {type: CPU, dataset: [in, out]}
+- {type: ComplexToChannels, dataset: out}

@@ -1,0 +1,55 @@
+d_steps: 1
+input_dataset: in
+latent_dataset: noise
+networks:
+  D:
+    activation: ELU
+    hidden_channels:
+    - 32
+    - 32
+    - 32
+    input_shape:
+    - 4
+    output_shape:
+    - 1
+    type: MLP
+  E:
+    network:
+      activation: ELU
+      hidden_channels_fcn: 32
+      hidden_channels_mlp: 256
+      image_shape:
+      - 80
+      - 80
+      input_channels: 33
+      normalization: PixelNormalization2D
+      output_channels: 4
+      padding_mode: reflect
+      type: FCN2DMLP
+    type: Concatenate
+  G:
+    activation: ELU
+    hidden_channels: 32
+    input_channels: 5
+    levels: 4
+    normalization: PixelNormalization2D
+    output_channels: 32
+    padding_mode: reflect
+    type: UNet2D
+  Z:
+    image_shape:
+    - 80
+    - 80
+    type: Constant
+optimizers:
+  D:
+    type: Adam
+    weight_decay: 1.0e-05
+  G:
+    type: Adam
+    weight_decay: 1.0e-05
+output_dataset: out
+parameters:
+  lambda_Z_rec: 1
+  lambda_rec: 100
+type: AAE

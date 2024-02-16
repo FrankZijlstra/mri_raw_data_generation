@@ -1,0 +1,111 @@
+model_runners:
+  default:
+    type: SliceSeeded
+    input_dataset: in
+    batch_size: 4
+    processors:
+    - {type: GPU, dataset: in}
+    - {type: GenerateNormalNoise, output_dataset: noise, batch_size: in, shape: ['%num_channels_z%'], torch: True, device: 'cuda:0'}
+
+generators:
+  train: &gen
+    type: Generator
+    threads: 4
+    processors:
+    - {type: SliceSampler, batch_size: 4, input_dataset: [in, out]}
+    - {type: GPU, dataset: [in, out]}
+    - {type: GenerateNormalNoise, output_dataset: noise, batch_size: in, shape: ['%num_channels_z%'], torch: True, device: 'cuda:0'}
+
+  validation:
+    <<: *gen
+    processors:
+    - {type: SliceSampler, batch_size: 4, dataset: validation, input_dataset: [in, out]}
+    - {type: GPU, dataset: [in, out]}
+    - {type: GenerateNormalNoise, output_dataset: noise, batch_size: in, shape: ['%num_channels_z%'], torch: True, device: 'cuda:0'}
+
+
+trainer:
+  type: Paired
+  epochs: 100
+  batches_per_epoch: 2000
+  validation_batches_per_epoch: 20
+  train_generator_name: train
+  validation_generator_name: validation
+  callbacks:
+  - ProgressPrinter
+  - type: LinearLRScheduler
+    learning_rate: {'D': 0.0001, 'G': 0.0001}
+    verbose: True
+    values:
+      0: 1
+      0.5: 1
+      1: 1.0e-6
+  - TrainingLogWriter
+  - type: SeededPairedImageWriter
+    filename_prefix: val
+    output_dataset: out
+    grid: True
+    shape: [3,3]
+    output_processors: []
+  - type: ModelSaver
+    verbose: True
+    interval: 10
+    keep_only_last: True
+
+globals:
+  num_channels_in: eval next(generators['train'])['in'].shape[1]
+  num_channels_out: eval next(generators['train'])['out'].shape[1]
+  num_channels_d_in: eval next(generators['train'])['in'].shape[1] + next(generators['train'])['out'].shape[1]
+  num_channels_z: eval int(4)
+  num_channels_ze: eval int(4)
+  num_channels_latent_plus_ze: eval next(generators['train'])['in'].shape[1] + 4
+
+model:
+  type: AAE
+  input_dataset: in
+  latent_dataset: noise
+  output_dataset: out
+  d_steps: 1
+  parameters:
+    lambda_rec: 100
+    lambda_Z_rec: 1
+
+  networks:
+    Z:
+      type: Constant
+      image_shape: [80, 80]
+    G:
+      type: UNet2D
+      hidden_channels: 32
+      input_channels: '%num_channels_latent_plus_ze%'
+      output_channels: '%num_channels_out%'
+      levels: 4
+      normalization: PixelNormalization2D
+      activation: ELU
+      padding_mode: reflect
+    E:
+      type: Concatenate
+      network:
+        type: FCN2DMLP
+        input_channels: '%num_channels_d_in%'
+        hidden_channels_fcn: 32
+        hidden_channels_mlp: 256
+        output_channels: '%num_channels_z%'
+        normalization: PixelNormalization2D
+        image_shape: [80, 80]
+        activation: ELU
+        padding_mode: reflect
+    D:
+      type: MLP
+      input_shape: ['%num_channels_z%']
+      output_shape: [1]
+      hidden_channels: [32, 32, 32]
+      activation: ELU
+      
+  optimizers:
+    D:
+      type: Adam
+      weight_decay: 1.0e-5
+    G:
+      type: Adam
+      weight_decay: 1.0e-5

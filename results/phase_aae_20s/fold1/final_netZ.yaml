@@ -1,0 +1,4 @@
+image_shape:
+- 80
+- 80
+type: Constant

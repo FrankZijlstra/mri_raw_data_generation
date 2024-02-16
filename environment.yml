@@ -1,0 +1,17 @@
+name: raw_data_generation
+dependencies:
+  - nvidia::cuda
+  - pytorch::pytorch
+  - pytorch::pytorch-cuda
+  - numpy
+  - scipy
+  - scikit-image
+  - matplotlib
+  - h5py
+  - pyyaml
+  - tqdm
+  - lxml
+  - pip
+  - pip:
+    - einops
+    - nibabel

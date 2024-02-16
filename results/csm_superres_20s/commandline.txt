@@ -1,0 +1,1 @@
+run.py -p ./experiments/fastmri_data_csm.txt ./experiments/20.txt ./experiments/fastmri_superres_csm.txt -o ./results/csm_superres_20s -gpu 0

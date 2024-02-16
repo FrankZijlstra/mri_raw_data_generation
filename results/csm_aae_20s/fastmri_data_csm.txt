@@ -1,0 +1,42 @@
+include fastmri_data.txt
+
+data_dir: &data_dir ./data/fastmri_t1post
+
+dataset:
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [{type: CpxMagnitude, channel: /rec}]
+    dtype: float32
+  out:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/csm]
+    dtype: complex64
+    
+dataset_val:
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [{type: CpxMagnitude, channel: /rec}]
+    dtype: float32
+  out:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/csm]
+    dtype: complex64
+
+dataset_test:
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [{type: CpxMagnitude, channel: /rec}]
+    dtype: float32
+  out:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/csm]
+    dtype: complex64
+
+preprocessing: []
+preprocessing_val: []

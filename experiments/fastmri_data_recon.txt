@@ -1,0 +1,34 @@
+include fastmri_data.txt
+
+data_dir: &data_dir ./data/fastmri_t1post
+
+dataset: &dataset
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/cc_im]
+    dtype: complex64
+    
+dataset_val: &dataset_val
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/cc_im]
+    dtype: complex64
+
+dataset_test: &dataset_test
+  in:
+    type: HDF5
+    data_dir: *data_dir
+    channels: [/cc_im]
+    dtype: complex64
+
+
+preprocessing: []
+
+preprocessing_val:
+- {type: GenerateEquispacedMask, output_dataset: mask, shape: in}
+- {type: CPU, dataset: mask}
+- {type: RSSRecon, dataset: in, output_dataset: out}
+- {type: FFT2D, dataset: in}
+- {type: Multiply, dataset: [in, mask]}

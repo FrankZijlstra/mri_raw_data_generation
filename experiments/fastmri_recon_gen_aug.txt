@@ -1,0 +1,56 @@
+processors_train_gen: &processors_train_gen
+- {type: SliceSampler, batch_size: 1, input_dataset: [out]}
+- {type: SliceSampler, batch_size: 1, input_dataset: [cov], dataset: train_raw}
+- {type: GenerateEquispacedMask, output_dataset: mask, shape: out, batch_size: out}
+- {type: GPU, dataset: [out, cov]}
+- {type: ResampleAvg, dataset: out, output_dataset: lr, target_shape: [80,80]}
+- {type: GenerateNormalNoise, output_dataset: noise, batch_size: out, shape: [4], torch: True, device: 'cuda:0'}
+- {type: Model, filename: ./results/phase_aae_20s/fold1/final, dataset: {in: lr, noise: noise}, output_dataset: {phase: out}}
+- {type: Resample, dataset: phase, target_shape: [320,320]}
+- {type: Concatenate, dataset: [out, phase], output_dataset: phase}
+- {type: Model, filename: ./results/phase_superres_20s/fold1/final, dataset: {in: phase}, output_dataset: {phase: out}}
+- {type: GenerateNormalNoise, output_dataset: noise, batch_size: out, shape: [4], torch: True, device: 'cuda:0'}
+- {type: Model, filename: ./results/csm_aae_20s/fold1/final, dataset: {in: lr, noise: noise}, output_dataset: {csm: out}}
+- {type: Resample, dataset: csm, target_shape: [320,320]}
+- {type: Concatenate, dataset: [out, csm], output_dataset: csm}
+- {type: Model, filename: ./results/csm_superres_20s/fold1/final, dataset: {in: csm}, output_dataset: {csm: out}}
+- {type: MRIRawData, dataset: out, output_dataset: in, dataset_phase: phase, dataset_csm: csm}
+- {type: NoiseCov, dataset: in, sigma: cov}
+- {type: DataAugmentation2D, dataset: in, mode: reflect}
+- {type: RSSRecon, dataset: in, output_dataset: out}
+- {type: FFT2D, dataset: in}
+- {type: Multiply, dataset: [in, mask]}
+
+processors_train: &processors_train
+- {type: SliceSampler, batch_size: 1, input_dataset: [in], dataset: train_raw}
+- {type: GenerateEquispacedMask, output_dataset: mask, shape: in, batch_size: in}
+- {type: GPU, dataset: [in]}
+- {type: DataAugmentation2D, dataset: in}
+- {type: RSSRecon, dataset: in, output_dataset: out}
+- {type: FFT2D, dataset: in}
+- {type: Multiply, dataset: [in, mask]}
+
+globals:
+  multi_value: eval float(get_global_value('multi'))
+  one_minus_multi: eval 1 - float(get_global_value('multi'))
+
+
+generators:
+  train:
+    type: MultiGenerator
+    threads: 0
+    weights: ['%multi_value%', '%one_minus_multi%']
+    generators:
+    - type: Generator
+      threads: 0
+      processors: *processors_train_gen
+    - type: Generator
+      threads: 0
+      processors: *processors_train
+
+  validation:
+    type: Generator
+    threads: 0
+    processors:
+    - {type: DatasetSliceSampler, batch_size: 1, dataset: validation, input_dataset: [in, out]}
+    - {type: GPU, dataset: [in, out]}
