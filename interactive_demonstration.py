@@ -115,7 +115,9 @@ mode = 'phase'
 truth = False
 
 fig = plt.figure()
-p = plt.imshow(phase)
+gs = fig.add_gridspec(5,1)
+s = fig.add_subplot(gs[0:4,:])
+p = s.imshow(phase)
 
 sliders = []
 sliders_phase = []
@@ -211,7 +213,7 @@ def set_sliders(val):
 
 for i in range(nz):
     sliders.append(Slider(
-        ax=plt.axes([0.25, nz*0.02-i*0.02, 0.65, 0.01]),
+        ax=plt.axes([0.33, nz*0.02-i*0.02, 0.57, 0.01]),
         label=f'csm[{i}]',
         valmin=-3,
         valmax=3,
@@ -220,7 +222,7 @@ for i in range(nz):
     
 for i in range(nz):
     sliders_phase.append(Slider(
-        ax=plt.axes([0.25, nz*0.02-i*0.02 + 0.1, 0.65, 0.01]),
+        ax=plt.axes([0.33, nz*0.02-i*0.02 + 0.1, 0.57, 0.01]),
         label=f'phase[{i}]',
         valmin=-3,
         valmax=3,
